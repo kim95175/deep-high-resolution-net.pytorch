@@ -276,8 +276,8 @@ def plot(data, gt_file, img_path, save_path,
                            '_id_'+str(imgId)+ \
                            '_'+img_name + '.png', 
                            format='png', bbox_inckes='tight', dpi=100)
-                plt.savefig(save_path +'id_'+str(imgId)+ '.pdf', format='pdf', 
-                            bbox_inckes='tight', dpi=100)
+                #plt.savefig(save_path +'id_'+str(imgId)+ '.pdf', format='pdf', 
+                #            bbox_inckes='tight', dpi=100)
             # plt.show()
             plt.close()
 

@@ -76,6 +76,7 @@ def save_batch_heatmaps(batch_image, batch_heatmaps, file_name,
                           dtype=np.uint8)
 
     preds, maxvals = get_max_preds(batch_heatmaps.detach().cpu().numpy())
+    #print("get_max_preds : {} {}".format(preds.shape, maxvals.shape))
 
     for i in range(batch_size):
         image = batch_image[i].mul(255)\
@@ -96,7 +97,7 @@ def save_batch_heatmaps(batch_image, batch_heatmaps, file_name,
         for j in range(num_joints):
             cv2.circle(resized_image,
                        (int(preds[i][j][0]), int(preds[i][j][1])),
-                       1, [0, 0, 255], 1)
+                       1, [0, 0, 255], 1)  # red circle
             heatmap = heatmaps[j, :, :]
             colored_heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
             masked_image = colored_heatmap*0.7 + resized_image*0.3
@@ -108,8 +109,8 @@ def save_batch_heatmaps(batch_image, batch_heatmaps, file_name,
             width_end = heatmap_width * (j+2)
             grid_image[height_begin:height_end, width_begin:width_end, :] = \
                 masked_image
-            # grid_image[height_begin:height_end, width_begin:width_end, :] = \
-            #     colored_heatmap*0.7 + resized_image*0.3
+            grid_image[height_begin:height_end, width_begin:width_end, :] = \
+                 colored_heatmap*0.7 + resized_image*0.3
 
         grid_image[height_begin:height_end, 0:heatmap_width, :] = resized_image
 
