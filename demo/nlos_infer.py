@@ -329,7 +329,7 @@ def main():
 
 
     #path_dir = '../..data/nlos/save_data_original/'
-    path_dir = '/home/sobeit/save_data_ver2/'
+    path_dir = '/home/elsa/workspace/save_data_ver2/'
     path2 = os.listdir(path_dir)
     dirs = []
     img_dirs = []
@@ -343,8 +343,8 @@ def main():
             gt_dirs.append(os.path.join(dir_name, 'gt'))
 
     #print(dirs)
-    print(img_dirs)
-    print(gt_dirs)
+    #print(img_dirs)
+    #print(gt_dirs)
     print("============= all {} dirs =============".format(len(dirs)))
 
     get_box = True
@@ -417,7 +417,7 @@ def main():
                 elif idx1 in [8, 10, 12]:  # yello
                     cv2.circle(img, (x_coord, y_coord), 3, (0, 255, 255), -1)
 
-            images.append(img)
+            #images.append(img)
             '''
             trans_img = pose_transform(img)
             trans_img = trans_img.reshape(1, 3, 480, 480)

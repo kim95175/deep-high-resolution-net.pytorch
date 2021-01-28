@@ -349,7 +349,8 @@ def main():
     pose_model.eval()
 
     # path_dir = '../..data/nlos/save_data_original/'
-    path_dir = '/home/sobeit/save_data_ver2/'
+    path_dir = '/home/elsa/workspace/save_data_ver2/'
+    #path_dir = '/home/sobeit/save_data_ver2/'
     path2 = os.listdir(path_dir)
     dirs = []
     img_dirs = []
@@ -370,7 +371,7 @@ def main():
     get_box = True
 
     #for i in range(len(dirs)):
-    for i in range(5):
+    for i in range(1):
         input_dir = img_dirs[i]
         output_dir = gt_dirs[i]
         print("input_dir ", input_dir)
@@ -382,7 +383,7 @@ def main():
         det_cnt=0
         for f in input_file_list:
             file_num = f[:5]
-            if num_done % 1000 == 0:
+            if num_done % 100 == 0:
                 print("{} images done".format(num_done))
             num_done += 1
             input_file = os.path.join(input_dir, f)
@@ -451,7 +452,7 @@ def main():
                 elif idx1 in [8, 10, 12]:  # yello
                     cv2.circle(img, (x_coord, y_coord), 3, (0, 255, 255), -1)
 
-            images.append(img)
+            #images.append(img)
             #if num_done > 1000:
             #    break
 
@@ -470,7 +471,7 @@ def main():
 
         #images[0].save(fp="result.gif", format='GIF', append_images=images, save_all=True, loop=0)
         print("detection : fail {}, success {}".format(num_done-det_cnt, det_cnt))
-        imageio.mimsave("test{}.gif".format(i), images, fps=18)
+        #imageio.mimsave("test{}.gif".format(i), images, fps=18)
 
 if __name__ == '__main__':
     main()
