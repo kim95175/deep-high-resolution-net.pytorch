@@ -423,7 +423,7 @@ def main():
             
             #print("hm {}".format(hm.shape))
             save_dir = output_dir + "/" + file_num
-            np.save(save_dir, hm)  # heatmap 저장.
+            #np.save(save_dir, hm)  # heatmap 저장.
             
             for idx1, mat in enumerate(pose_preds[0]):
                 x_coord, y_coord = int(mat[0]), int(mat[1])
