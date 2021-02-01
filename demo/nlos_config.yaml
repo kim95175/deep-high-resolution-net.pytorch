@@ -25,21 +25,15 @@ DATASET:
 MODEL:
   INIT_WEIGHTS: true
   NAME: pose_hrnet
-  NUM_JOINTS: 16  #17
-  #PRETRAINED: 'models/pytorch/imagenet/hrnet_w32-36af842e.pth'
+  NUM_JOINTS: 17  #17
+  PRETRAINED: 'models/pytorch/imagenet/hrnet_w48-8ef0771d.pth'
   TARGET_TYPE: gaussian
-  #IMAGE_SIZE:
-  #- 288
-  #- 384
   IMAGE_SIZE:
   - 480  # 160 * 4
   - 480  # 160 * 3
-  #HEATMAP_SIZE:
-  #- 72
-  #- 96
   HEATMAP_SIZE:
-  - 128 # 32 * 4
-  - 96  # 32 *3
+  - 120
+  - 120
   SIGMA: 3
   EXTRA:
     PRETRAINED_LAYERS:
@@ -63,8 +57,8 @@ MODEL:
       - 4
       - 4
       NUM_CHANNELS:
-      - 32
-      - 64
+      - 48
+      - 96
       FUSE_METHOD: SUM
     STAGE3:
       NUM_MODULES: 4
@@ -75,9 +69,9 @@ MODEL:
       - 4
       - 4
       NUM_CHANNELS:
-      - 32
-      - 64
-      - 128
+      - 48
+      - 96
+      - 192
       FUSE_METHOD: SUM
     STAGE4:
       NUM_MODULES: 3
@@ -89,10 +83,10 @@ MODEL:
       - 4
       - 4
       NUM_CHANNELS:
-      - 32
-      - 64
-      - 128
-      - 256
+      - 48
+      - 96
+      - 192
+      - 384
       FUSE_METHOD: SUM
 LOSS:
   USE_TARGET_WEIGHT: true
@@ -118,9 +112,7 @@ TEST:
   BBOX_THRE: 1.0
   IMAGE_THRE: 0.0
   IN_VIS_THRE: 0.2
-  #MODEL_FILE: '../models/pytorch/pose_coco/pose_hrnet_w32_256x192.pth'
-  #MODEL_FILE: '../models/pytorch/pose_coco/pose_hrnet_w48_256x192.pth'
-  MODEL_FILE: '../models/pytorch/pose_mpii/pose_hrnet_w32_256x256.pth'
+  MODEL_FILE: '../models/pytorch/pose_coco/pose_hrnet_w48_256x192.pth'
   NMS_THRE: 1.0
   OKS_THRE: 0.9
   USE_GT_BBOX: true

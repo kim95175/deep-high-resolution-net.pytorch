@@ -146,7 +146,7 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
         model_inputs.append(model_input)
         #model_input = transform(re_model_input)  # .unsqueeze(0)
         #model_inputs.append(model_input)
-
+    #print(pose_model)
     # n * 1chw -> nchw
     model_inputs = torch.stack(model_inputs)
     # zero_heatmap = np.zeros((120, 120), dtype=np.float32)
@@ -154,7 +154,7 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
     # compute output heatmap
     output = pose_model(model_inputs.to(CTX))
     # heatmap output :
-
+    
     coords, _ = get_final_preds(
         cfg,
         output.cpu().detach().numpy(),
@@ -164,7 +164,7 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
     # Transform back
 
     #coords, _ = get_max_preds(output.cpu().detach().numpy())
-    #print("heatmap?", output.shape)
+    print("heatmap from hrnet model", output.shape)
     for idx1, mat in enumerate(coords[0]):
         x_coord, y_coord = int(mat[0]), int(mat[1])
         if not (in_box(x_coord, y_coord, box)):
@@ -349,7 +349,7 @@ def main():
     pose_model.eval()
 
     # path_dir = '../..data/nlos/save_data_original/'
-    path_dir = '/home/elsa/workspace/save_data_ver2/'
+    path_dir = '/data/nlos/save_data_ver2/'
     #path_dir = '/home/sobeit/save_data_ver2/'
     path2 = os.listdir(path_dir)
     dirs = []
@@ -364,10 +364,11 @@ def main():
             gt_dirs.append(os.path.join(dir_name, 'gt'))
 
     # print(dirs)
-    print(img_dirs)
-    print(gt_dirs)
+    #print(img_dirs)
+    #print(gt_dirs)
     print("============= all {} dirs =============".format(len(dirs)))
-
+    
+    
     get_box = True
 
     #for i in range(len(dirs)):
@@ -391,7 +392,7 @@ def main():
             #input_file = '../data/nlos/img/{0:05d}.jpg'.format(i)
             #input_file = '../data/nlos/02418.jpg'
             img = cv2.imread(input_file)
-            #print(img.shape)
+            print("img_size : " ,img.shape)
             #cv2.imwrite("test_image.jpg" , img)
             img = cv2.resize(
                 img,
@@ -430,8 +431,8 @@ def main():
             pose_preds = tmp_preds.reshape(1, 13, 2)
 
 
-            #hm, _ = generate_target(pose_preds[0])
-            #print("generated hm ", hm.shape)
+            hm, _ = generate_target(pose_preds[0])
+            print("generated hm ", hm.shape)
 
             #save_dir = output_dir + "/" + file_num
             #np.save(save_dir, hm)
@@ -453,8 +454,8 @@ def main():
                     cv2.circle(img, (x_coord, y_coord), 3, (0, 255, 255), -1)
 
             #images.append(img)
-            #if num_done > 1000:
-            #    break
+            if num_done > 3:
+                break
 
             #save_dir = '../data/nlos/nlos_result/cocobox_pose.jpg'.format(i)
             #cv2.imwrite(save_dir, img)

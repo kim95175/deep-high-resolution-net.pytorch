@@ -1,3 +1,5 @@
+####### Image data를 읽어와 GT 를 만드는 코드 #######
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -76,6 +78,7 @@ COCO_INSTANCE_CATEGORY_NAMES = [
 ]
 
 
+# 사진에서 먼저 사람의 위치를 추정.
 def get_person_detection_boxes(model, img, threshold=0.5):
     pil_image = Image.fromarray(img)  # Load the image
     transform = transforms.Compose([transforms.ToTensor()])  # Defing PyTorch Transform
@@ -96,6 +99,7 @@ def get_person_detection_boxes(model, img, threshold=0.5):
 
     return person_boxes
 
+# 예측한 keypoint의 좌표가 detection box 내에 있는지를 체크
 def in_box(x, y, box):
     if not ((box[0][0] <= x) and (x <= box[1][0])):
         return False
@@ -103,6 +107,7 @@ def in_box(x, y, box):
         return False
     return True
 
+# image로 부터 각 Keypoint의 좌표를 계산.
 def get_pose_estimation_prediction(pose_model, image, centers, scales, box, transform):
     rotation = 0
 
@@ -152,6 +157,7 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
     return output, coords
 
 
+# deteciton 결과를 기준으로 center, scale 계산
 def box_to_center_scale(box, model_image_width, model_image_height):
     """convert a box to center,scale information required for pose transformation
     Parameters
@@ -224,6 +230,8 @@ def parse_args():
     args.prevModelDir = ''
     return args
 
+
+# 좌표를 받아 heatmap 생성.
 def generate_target(joints):
     '''
     :param joints:  [num_joints, 2]
@@ -308,9 +316,9 @@ def main():
 
     args = parse_args()
     update_config(cfg, args)
-    pose_dir = prepare_output_dirs(args.outputDir)
-    csv_output_rows = []
+    #pose_dir = prepare_output_dirs(args.outputDir)
 
+    # Deection model
     box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     box_model.to(CTX)
     box_model.eval()
@@ -318,6 +326,7 @@ def main():
         cfg, is_train=False
     )
 
+    # 학습된 모델 불러오기
     if cfg.TEST.MODEL_FILE:
         print('=> loading model from {}'.format(cfg.TEST.MODEL_FILE))
         pose_model.load_state_dict(torch.load(cfg.TEST.MODEL_FILE), strict=False)
@@ -327,9 +336,10 @@ def main():
     pose_model.to(CTX)
     pose_model.eval()
 
+    # img 파일 및 gt 저장할 폴더 불러오기
 
     #path_dir = '../..data/nlos/save_data_original/'
-    path_dir = '/home/elsa/workspace/save_data_ver2/'
+    path_dir = '/data/nlos/save_data_ver2/'
     path2 = os.listdir(path_dir)
     dirs = []
     img_dirs = []
@@ -351,7 +361,7 @@ def main():
 
     for i in range(len(dirs)):
     #for i in [0]:
-        input_dir = img_dirs[i]
+        input_dir = img_dirs[i]  
         output_dir = gt_dirs[i]
         print("input_dir ", input_dir)
         print("output_dir ", output_dir)
@@ -366,7 +376,8 @@ def main():
                 print("{} images done".format(num_done))
             num_done += 1
             input_file = os.path.join(input_dir,f)
-            img = cv2.imread(input_file)
+
+            img = cv2.imread(input_file)        # img 파일 불러와서 크기 조절하기
             img = cv2.resize(
                 img,
                 (480, 480),  # (width, height)
@@ -374,6 +385,7 @@ def main():
             )
 
             # print(img.shape)
+            # detection model을 통해 먼저 사람이 있는 위치를 추정 ( BOX ).
             if get_box:
                 detection_boxes = get_person_detection_boxes(box_model, img, threshold=0.9)
                 full_boxes = []
@@ -382,6 +394,7 @@ def main():
             centers = []
             scales = []
 
+            # 사람의 위치가 detection 되지 않을 시 사진 전체를 BOX로 함.
             if not detection_boxes:
                 box = full_boxes[0]
             else:
@@ -389,21 +402,29 @@ def main():
                 box = detection_boxes[0]
 
 
+            # box를 image위에 나타내고, box 를 기준으로 center, scale 계산 -> center, scale을 기준으로 image를 조정하여 학습 성능을 높임.
             cv2.rectangle(img, box[0], box[1], color=(0, 255, 0), thickness=3)
             center, scale = box_to_center_scale(box, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
             centers.append(center)
             scales.append(scale)
 
+            # image로부터 신체 각 Keypoint의 좌표를 계산함.
             output, pose_preds = get_pose_estimation_prediction(pose_model, img, centers, scales, box, transform=pose_transform)
             #output_np = output.cpu().detach().numpy()
             #output_np = np.concatenate((output_np[0][0, :, :].reshape(1, 120, 120), output_np[0][5:, :, :]), axis=0)
+            
+            # 얼굴에 대한 정보 (눈, 귀) 에 대한 정보 제외.
             tmp_preds = np.concatenate((pose_preds[0][0].reshape(1, 2), pose_preds[0][5:]))
             pose_preds = tmp_preds.reshape(1, 13, 2)
 
+            # 좌표를 기반으로 heatmap 생성
             hm, _ = generate_target(pose_preds[0])
+            
+            
             #print("hm {}".format(hm.shape))
             save_dir = output_dir + "/" + file_num
-            np.save(save_dir, hm)
+            np.save(save_dir, hm)  # heatmap 저장.
+            
             for idx1, mat in enumerate(pose_preds[0]):
                 x_coord, y_coord = int(mat[0]), int(mat[1])
                 if idx1 == 0:
@@ -417,7 +438,8 @@ def main():
                 elif idx1 in [8, 10, 12]:  # yello
                     cv2.circle(img, (x_coord, y_coord), 3, (0, 255, 255), -1)
 
-            #images.append(img)
+            #images.append(img)  
+
             '''
             trans_img = pose_transform(img)
             trans_img = trans_img.reshape(1, 3, 480, 480)
@@ -431,7 +453,7 @@ def main():
                 break #for test only once
             '''
         print("detection : fail {}, success {}".format(num_done - det_cnt, det_cnt))
-        imageio.mimsave("test{}.gif".format(i), images, fps=18)
+        #imageio.mimsave("test{}.gif".format(i), images, fps=18)
 
 if __name__ == '__main__':
     main()
