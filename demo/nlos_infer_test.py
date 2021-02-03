@@ -34,7 +34,7 @@ import imageio
 
 #CTX = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 #CTX = torch.device('cpu')
-GPU_NUM = 1 # 원하는 GPU 번호 입력
+GPU_NUM = 0 # 원하는 GPU 번호 입력
 CTX = torch.device(f'cuda:{GPU_NUM}' if torch.cuda.is_available() else 'cpu')
 torch.cuda.set_device(CTX)
 
@@ -73,7 +73,6 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
-
 
 def get_person_detection_boxes(model, img, threshold=0.5):
     pil_image = Image.fromarray(img)  # Load the image
@@ -123,10 +122,11 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
             trans,
             (int(cfg.MODEL.IMAGE_SIZE[0]), int(cfg.MODEL.IMAGE_SIZE[1])),
             flags=cv2.INTER_LINEAR)
+        
 
         #print('model_input(w/ trans)', model_input.shape)
         #img = model_input
-        #cv2.imwrite('../data/nlos/nlos_result/trans_input.jpg', img)
+        #cv2.imwrite('../data/nlos/img/affined_img.jpg', model_input)
 
         '''
         inv_trans = get_affine_transform(center, scale, rotation, cfg.MODEL.IMAGE_SIZE, inv=1)
@@ -160,11 +160,12 @@ def get_pose_estimation_prediction(pose_model, image, centers, scales, box, tran
         output.cpu().detach().numpy(),
         np.asarray(centers),
         np.asarray(scales))
-    #print(coords)
+    print("coords", coords.shape)
     # Transform back
 
     #coords, _ = get_max_preds(output.cpu().detach().numpy())
     print("heatmap from hrnet model", output.shape)
+
     for idx1, mat in enumerate(coords[0]):
         x_coord, y_coord = int(mat[0]), int(mat[1])
         if not (in_box(x_coord, y_coord, box)):
@@ -335,6 +336,7 @@ def main():
     box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     box_model.to(CTX)
     box_model.eval()
+
     pose_model = eval('models.' + cfg.MODEL.NAME + '.get_pose_net')(
         cfg, is_train=False
     )
@@ -383,12 +385,14 @@ def main():
         images =[]
         det_cnt=0
         for f in input_file_list:
+            print(f)
             file_num = f[:5]
+                
             if num_done % 100 == 0:
                 print("{} images done".format(num_done))
             num_done += 1
             input_file = os.path.join(input_dir, f)
-
+            #print(input_file)
             #input_file = '../data/nlos/img/{0:05d}.jpg'.format(i)
             #input_file = '../data/nlos/02418.jpg'
             img = cv2.imread(input_file)
@@ -399,14 +403,16 @@ def main():
                 (480, 480),  # (width, height)
                 interpolation=cv2.INTER_CUBIC
             )
-            save_dir = '../data/nlos/input.jpg'
-            #cv2.imwrite(save_dir, img)
+            img_save_dir = '../data/nlos/img/'
+            cv2.imwrite(img_save_dir + 'resized_img{}.jpg'.format(num_done), img)
+            
             if get_box:
                 detection_boxes = get_person_detection_boxes(box_model, img, threshold=0.9)
                 #x, y = img.shape[:2]
                 full_boxes = []
                 full_boxes.append([(0,0), (480, 480)])
 
+            #print(detection_boxes)
 
             centers = []
             scales = []
@@ -427,6 +433,7 @@ def main():
 
             box = boxes[0]
             output, pose_preds = get_pose_estimation_prediction(pose_model, img, centers, scales, box, transform=pose_transform)
+            
             tmp_preds = np.concatenate((pose_preds[0][0].reshape(1,2), pose_preds[0][5:]))
             pose_preds = tmp_preds.reshape(1, 13, 2)
 
@@ -435,7 +442,7 @@ def main():
             print("generated hm ", hm.shape)
 
             #save_dir = output_dir + "/" + file_num
-            #np.save(save_dir, hm)
+            np.save("sample", hm)
 
             #x_var = np.var(pose_preds[0][:,0])
             #print("image {} x var : {}".format(i , x_var))
@@ -452,23 +459,27 @@ def main():
                     cv2.circle(img, (x_coord, y_coord), 3, (255, 255, 255), -1)
                 elif idx1 in [8, 10, 12]:  # yello
                     cv2.circle(img, (x_coord, y_coord), 3, (0, 255, 255), -1)
-
+            
+            
+            cv2.imwrite(img_save_dir + 'prediction_img{}.jpg'.format(num_done), img)
             #images.append(img)
-            if num_done > 3:
-                break
-
+            
             #save_dir = '../data/nlos/nlos_result/cocobox_pose.jpg'.format(i)
             #cv2.imwrite(save_dir, img)
             #cv2.imwrite('cocobox_test{}_pose.jpg'.format(i), img)
-            '''
+
+            print("img.shape",img.shape)
             trans_img = pose_transform(img)
             trans_img = trans_img.reshape(1, 3, 480, 480)
             torch_hm = torch.from_numpy(hm)
             torch_hm = torch_hm.reshape(1, 13, 120, 120)
             print("img {} hm {}".format(trans_img.shape, torch_hm.shape))
             save_batch_heatmaps(
-                trans_img, torch_hm, 'generated_heatmap.jpg'
-            )'''
+                trans_img, torch_hm, '../data/nlos/hm/'+'generated_heatmap{}.jpg'.format(num_done)
+            )
+
+            if num_done > 3:
+                break
 
         #images[0].save(fp="result.gif", format='GIF', append_images=images, save_all=True, loop=0)
         print("detection : fail {}, success {}".format(num_done-det_cnt, det_cnt))
